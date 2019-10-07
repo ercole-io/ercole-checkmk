@@ -13,17 +13,15 @@
 
 function ercole_alarm() {
 
-    QUERY_CRITICAL="\pset footer off
-    select count(*) from alert where severity='CRITICAL' and status <> 'ACK';"
-    QUERY_WARNING="\pset footer off
-    select count(*) from alert where severity='WARNING' and status <> 'ACK';"
-    CRITICAL=$(echo $QUERY_CRITICAL | su - "$DBUSER" -c "$psql -X -d $PGDATABASE ${EXTRA_ARGS} -q -A -F';'")
-    WARNING=$(echo $QUERY_WARNING | su - "$DBUSER" -c "$psql -X -d $PGDATABASE ${EXTRA_ARGS} -q -A -F';'")
+    QUERY_CRITICAL="select count(*) from alert where severity='CRITICAL' and status <> 'ACK';"
+    QUERY_WARNING="select count(*) from alert where severity='WARNING' and status <> 'ACK';"
+    CRITICAL=$(echo -e  "$QUERY_CRITICAL" | su - "$DBUSER" -c "$psql -t -X -d $PGDATABASE ${EXTRA_ARGS} -q -A -F';'")
+    WARNING=$(echo -e  "$QUERY_WARNING" | su - "$DBUSER" -c "$psql -t -X -d $PGDATABASE ${EXTRA_ARGS} -q -A -F';'")
 
 }
 
-function format_output()
-{
+function format_output() {
+
   if [[ $CRITICAL -gt 0 ]]; then
     echo "2 Ercole-alarm - CRIT Found $CRITICAL Critical event"
   elif [[ $WARNING -gt 0 ]]; then
@@ -31,22 +29,12 @@ function format_output()
   else
     echo "0 Ercole-alarm - OK There aren't event"
   fi
+
 }
 
 
-#.
-#   .--main----------------------------------------------------------------.
-#   |                                       _                              |
-#   |                       _ __ ___   __ _(_)_ __                         |
-#   |                      | '_ ` _ \ / _` | | '_ \                        |
-#   |                      | | | | | | (_| | | | | |                       |
-#   |                      |_| |_| |_|\__,_|_|_| |_|                       |
-#   |                                                                      |
-#   '----------------------------------------------------------------------'
+function ercole_main() {
 
-
-
-function postgres_main() {
     if [ -z "$DBUSER" ] || [ -z "$PGDATABASE" ] ; then
         exit 0
     fi
@@ -64,6 +52,16 @@ function postgres_main() {
 
 }
 
+#.
+#   .--main----------------------------------------------------------------.
+#   |                                       _                              |
+#   |                       _ __ ___   __ _(_)_ __                         |
+#   |                      | '_ ` _ \ / _` | | '_ \                        |
+#   |                      | | | | | | (_| | | | | |                       |
+#   |                      |_| |_| |_|\__,_|_|_| |_|                       |
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+
 
 MK_CONFFILE=$MK_CONFDIR/ercole.cfg
 if [ -e "$MK_CONFFILE" ]; then
@@ -74,7 +72,7 @@ if [ -e "$MK_CONFFILE" ]; then
     PGDATABASE=$(grep PGDATABASE "$MK_CONFFILE" | sed 's/.*=//g')
     PGPORT=$(grep PGPORT "$MK_CONFFILE" | sed 's/.*=//g')
 
-    postgres_main
+    ercole_main
 
 else
     echo "MK_CONFIG FILE NOT FOUND"
